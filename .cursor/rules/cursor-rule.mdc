@@ -1,0 +1,7 @@
+---
+description: 编程规范
+alwaysApply: true
+---
+
+1.尽量兼容更多多种语言
+2.接口返回使用英语
