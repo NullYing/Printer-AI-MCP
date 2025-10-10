@@ -3,10 +3,11 @@ name = "printer-ai-mcp"
 version = "0.1.0"
 description = "Printer AI MCP"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 dependencies = [
     "mcp[cli]>=1.15.0",
-    "pycups>=2.0.4",
+    'pycups>=2.0.4; sys_platform == "darwin" or sys_platform == "linux"',
+    "pywin32>=311; sys_platform == 'win32'",
     "requests>=2.32.5",
 ]
 

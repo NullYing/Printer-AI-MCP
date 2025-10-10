@@ -13,8 +13,8 @@
 
 ## 系统要求
 
-- Python 3.13+
-- Windows: PowerShell支持
+- Python 3.10+
+- Windows: 建议Windows 10以上
 - macOS/Linux: CUPS支持
 
 ## 安装
@@ -77,19 +77,6 @@ print_file(index: int = None, file_path: str = None, options: dict = None) -> di
     }
 }
 ```
-
-## 平台特定功能
-
-### Windows (未完成)
-- 使用PowerShell获取打印机信息
-- 支持WMI查询打印机状态
-- 自动检测默认打印机
-
-### macOS/Linux (CUPS)
-- 基于CUPS协议
-- 支持IPP打印
-- 提供详细的打印机属性查询
-- 支持打印任务管理
 
 ## 配置
 

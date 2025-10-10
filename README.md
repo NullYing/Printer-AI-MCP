@@ -13,13 +13,13 @@ A cross-platform printer AI MCP server that supports Windows, macOS, and Linux s
 
 ## System Requirements
 
-- Python 3.13+
-- Windows: PowerShell support
+- Python 3.10+
+- Windows: Recommended Windows 10 or above
 - macOS/Linux: CUPS support
 
 ## Installation
 
-### Using uv
+### Using uv Installation
 
 ```bash
 # Clone the project
@@ -41,27 +41,35 @@ python main.py
 ### Available MCP Tools
 
 #### 1. Get Printer List
+
 ```python
 get_printer_list() -> dict
 ```
+
 Returns a list of all available printers in the system.
 
 #### 2. Get Printer Status
+
 ```python
 printer_status(index: int = None) -> dict
 ```
+
 Gets the status information of the specified printer. If no index is specified, returns the default printer status.
 
 #### 3. Get Printer Attributes
+
 ```python
 printer_attrs(index: int = None) -> dict
 ```
+
 Gets detailed configuration attributes of the printer (macOS/Linux only).
 
 #### 4. Print File
+
 ```python
 print_file(index: int = None, file_path: str = None, options: dict = None) -> dict
 ```
+
 Prints files using the specified printer. Supports custom print options.
 
 ### API Response Format
@@ -70,22 +78,39 @@ All APIs return responses in a unified format:
 
 ```json
 {
-    "code": 200,
-    "msg": "success",
-    "data": {
-        // Specific data content
-    }
+  "code": 200,
+  "msg": "success",
+  "data": {
+    // Specific data content
+  }
 }
 ```
 
 ## Platform-Specific Features
 
 ### Windows (Incomplete)
+
 - Uses PowerShell to get printer information
 - Supports WMI queries for printer status
 - Automatically detects default printer
 
 ### macOS/Linux (CUPS)
+
+- Based on CUPS protocol
+- Supports IPP printing
+- Provides detailed printer attribute queries
+- Supports print job management
+
+## Platform-Specific Features
+
+### Windows (Incomplete)
+
+- Uses PowerShell to get printer information
+- Supports WMI queries for printer status
+- Automatically detects default printer
+
+### macOS/Linux (CUPS)
+
 - Based on CUPS protocol
 - Supports IPP printing
 - Provides detailed printer attribute queries
@@ -99,12 +124,12 @@ Add to your MCP configuration file:
 
 ```json
 {
-    "mcpServers": {
-      "printerAIMcp": {
-        "url": "http://127.0.0.1:8000/mcp",
-        "headers": {}
-      }
+  "mcpServers": {
+    "printerAIMcp": {
+      "url": "http://127.0.0.1:8000/mcp",
+      "headers": {}
     }
+  }
 }
 ```
 
