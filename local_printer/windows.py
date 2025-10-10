@@ -3,6 +3,8 @@ Windows Printer Operations Module
 """
 import subprocess
 import json
+from typing import Dict, Any
+from models.model import APIResponse, PrinterStatus
 
 
 def print_file_prompt():
@@ -17,7 +19,7 @@ def print_file_prompt():
     """
 
 
-def get_printer_list():
+def get_printer_list() -> Dict[str, Any]:
     """Get the list of printers on Windows"""
     try:
         # Use PowerShell to get printer list
@@ -39,29 +41,20 @@ def get_printer_list():
             for index, printer in enumerate(printers, start=1):
                 printer['Index'] = index
             
-            return {
-                "code": 200,
-                "msg": "success",
-                "data": {
-                    "printers": printers,
-                    "count": len(printers) if isinstance(printers, list) else 0
-                }
-            }
+            response = APIResponse.success({
+                "printers": printers,
+                "count": len(printers) if isinstance(printers, list) else 0
+            })
+            return response.to_dict()
         else:
-            return {
-                "code": 500,
-                "msg": f"Failed to get printer list: {result.stderr}",
-                "data": {"printers": [], "count": 0}
-            }
+            response = APIResponse.server_error(f"Failed to get printer list: {result.stderr}", {"printers": [], "count": 0})
+            return response.to_dict()
     except Exception as e:
-        return {
-            "code": 500,
-            "msg": f"Error getting printer list: {str(e)}",
-            "data": {"printers": [], "count": 0}
-        }
+        response = APIResponse.server_error(f"Error getting printer list: {str(e)}", {"printers": [], "count": 0})
+        return response.to_dict()
 
 
-def get_printer_status(index: int = None) -> dict:
+def get_printer_status(index: int = None) -> Dict[str, Any]:
     """Get printer status by index
     
     Args:
@@ -77,11 +70,8 @@ def get_printer_status(index: int = None) -> dict:
         printers = printers_result["data"]["printers"]
         
         if not printers:
-            return {
-                "code": 404,
-                "msg": "No printers found",
-                "data": {}
-            }
+            response = APIResponse.not_found("No printers found")
+            return response.to_dict()
         
         # Determine which printer to query
         printer = None
@@ -104,11 +94,8 @@ def get_printer_status(index: int = None) -> dict:
         else:
             # Use printer by index (1-based)
             if index < 1 or index > len(printers):
-                return {
-                    "code": 400,
-                    "msg": f"Invalid printer index. Valid range: 1-{len(printers)}",
-                    "data": {}
-                }
+                response = APIResponse.error(400, f"Invalid printer index. Valid range: 1-{len(printers)}")
+                return response.to_dict()
             printer = printers[index - 1]
         
         # Get detailed printer status
@@ -123,28 +110,23 @@ def get_printer_status(index: int = None) -> dict:
         if result.returncode == 0 and result.stdout.strip():
             detailed_status = json.loads(result.stdout)
             
-            return {
-                "code": 200,
-                "msg": "success",
-                "data": {
-                    "name": detailed_status.get('Name', ''),
-                    "index": index if index else printer.get('Index', 1),
-                    "status": detailed_status.get('PrinterStatus', 'Unknown'),
-                    "job_count": detailed_status.get('JobCount', 0),
-                    "driver": detailed_status.get('DriverName', ''),
-                    "port": detailed_status.get('PortName', ''),
-                    "location": detailed_status.get('Location', '')
-                }
-            }
+            # Convert Windows printer status to PrinterStatus enum
+            windows_status = detailed_status.get('PrinterStatus', 'Unknown')
+            status = PrinterStatus.from_string(windows_status)
+            
+            response = APIResponse.success({
+                "name": detailed_status.get('Name', ''),
+                "index": index if index else printer.get('Index', 1),
+                "status": status.value,
+                "job_count": detailed_status.get('JobCount', 0),
+                "driver": detailed_status.get('DriverName', ''),
+                "port": detailed_status.get('PortName', ''),
+                "location": detailed_status.get('Location', '')
+            })
+            return response.to_dict()
         else:
-            return {
-                "code": 500,
-                "msg": f"Failed to get printer status: {result.stderr}",
-                "data": {}
-            }
+            response = APIResponse.server_error(f"Failed to get printer status: {result.stderr}")
+            return response.to_dict()
     except Exception as e:
-        return {
-            "code": 500,
-            "msg": f"Error getting printer status: {str(e)}",
-            "data": {}
-        }
+        response = APIResponse.server_error(f"Error getting printer status: {str(e)}")
+        return response.to_dict()

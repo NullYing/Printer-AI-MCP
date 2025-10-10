@@ -2,6 +2,8 @@
 Cups Printer Operations Module
 """
 import cups
+from typing import List, Dict, Any, Optional
+from models.model import Printer, APIResponse, PrintOptions, PrinterStatus
 
 
 def print_file_prompt():
@@ -19,7 +21,7 @@ def print_file_prompt():
     """
 
 
-def get_printer_list():
+def get_printer_list() -> Dict[str, Any]:
     """Get the list of printers on macOS (using CUPS)"""
     try:
         # Connect to CUPS server
@@ -37,7 +39,7 @@ def get_printer_list():
             pass
 
         # Build printer list
-        printers = []
+        printers: List[Printer] = []
         index = 0
         for printer_name, printer_attrs in printers_dict.items():
             index += 1
@@ -47,15 +49,8 @@ def get_printer_list():
             state = printer_attrs.get('printer-state', 3)
             state_reasons = printer_attrs.get('printer-state-reasons', [])
 
-            # Determine status
-            if state == 3:
-                status = 'idle'
-            elif state == 4:
-                status = 'processing'
-            elif state == 5:
-                status = 'stopped'
-            else:
-                status = 'unknown'
+            # Determine status using PrinterStatus enum
+            status = PrinterStatus.from_cups_state(state)
 
             # Check if printer is accepting jobs
             is_accepting = printer_attrs.get('printer-is-accepting-jobs', True)
@@ -63,126 +58,101 @@ def get_printer_list():
             # Check if this is the default printer
             is_default = (printer_name == default_printer)
 
-            printers.append({
-                "index": index,
-                "name": printer_name,
-                "status": status,
-                "status_reasons": state_reasons,
-                "is_accepting": is_accepting,
-                "type": "CUPS",
-                "is_default": is_default,
-                "location": printer_attrs.get('printer-location', ''),
-                "model": printer_attrs.get('printer-make-and-model', ''),
-                "uri": printer_attrs.get('device-uri', '')
-            })
+            printer = Printer(
+                index=index,
+                name=printer_name,
+                status=status,
+                status_reasons=state_reasons,
+                is_accepting=is_accepting,
+                type="CUPS",
+                is_default=is_default,
+                location=printer_attrs.get('printer-location', ''),
+                model=printer_attrs.get('printer-make-and-model', ''),
+                uri=printer_attrs.get('device-uri', '')
+            )
+            printers.append(printer)
 
-        return {
-            "code": 200,
-            "msg": "success",
-            "data": {
-                "printers": printers,
-                "count": len(printers),
-                "default_printer": default_printer
-            }
-        }
+        # Convert printers to dict for response
+        printers_data = [printer.to_dict() for printer in printers]
+        
+        response = APIResponse.success({
+            "printers": printers_data,
+            "count": len(printers),
+            "default_printer": default_printer
+        })
+        return response.to_dict()
+        
     except RuntimeError as e:
         # CUPS connection error
-        return {
-            "code": 500,
-            "msg": f"CUPS connection error: {str(e)}",
-            "data": {"printers": [], "count": 0}
-        }
+        response = APIResponse.server_error(f"CUPS connection error: {str(e)}", {"printers": [], "count": 0})
+        return response.to_dict()
     except Exception as e:
-        return {
-            "code": 500,
-            "msg": f"Error getting printer list: {str(e)}",
-            "data": {"printers": [], "count": 0}
-        }
+        response = APIResponse.server_error(f"Error getting printer list: {str(e)}", {"printers": [], "count": 0})
+        return response.to_dict()
 
 
-def get_index_printer_from_list(index: int):
+def get_index_printer_from_list(index: int) -> Optional[Printer]:
     printer_result = get_printer_list()
     if printer_result["code"] != 200:
         return None
     printer_list = printer_result["data"]["printers"]
-    for printer in printer_list:
-        if printer["index"] == index:
-            return printer
+    for printer_data in printer_list:
+        if printer_data["index"] == index:
+            return Printer.from_dict(printer_data)
     return None
 
 
-def get_printer_status(index: int) -> dict:
+def get_printer_status(index: int) -> Dict[str, Any]:
     """Get printer status"""
     printer = get_index_printer_from_list(index)
     if printer is None:
-        return {
-            "code": 404,
-            "msg": "Printer not found",
-            "data": {}
-        }
+        response = APIResponse.not_found("Printer not found")
+        return response.to_dict()
+    
     try:
         # Connect to CUPS server
         conn = cups.Connection()
 
         # Get printer status
-        printer_name = printer["name"]
+        printer_name = printer.name
         printer_attrs = conn.getPrinterAttributes(printer_name)
 
         state = printer_attrs.get('printer-state', 3)
-        if state == 3:
-            status = 'idle'
-        elif state == 4:
-            status = 'processing'
-        elif state == 5:
-            status = 'stopped'
-        else:
-            status = 'unknown'
+        status = PrinterStatus.from_cups_state(state)
 
-        return {
-            "code": 200,
-            "msg": "success",
-            "data": {
-                "index": index,
-                "name": printer_name,
-                "is_accepting_jobs": printer_attrs.get('printer-is-accepting-jobs', True),
-                "status_reasons": printer_attrs.get('printer-state-reasons', []),
-                "status": status
-            }
-        }
+        response = APIResponse.success({
+            "index": index,
+            "name": printer_name,
+            "is_accepting_jobs": printer_attrs.get('printer-is-accepting-jobs', True),
+            "status_reasons": printer_attrs.get('printer-state-reasons', []),
+            "status": status.value
+        })
+        return response.to_dict()
     except Exception as e:
-        return {
-            "code": 500,
-            "msg": f"Error getting printer status: {str(e)}",
-            "data": {}
-        }
+        response = APIResponse.server_error(f"Error getting printer status: {str(e)}")
+        return response.to_dict()
 
 
-def get_printer_attrs(index: int) -> dict:
+def get_printer_attrs(index: int) -> Dict[str, Any]:
     """Get printer attributes"""
     printer_result = get_printer_status(index)
     if printer_result["code"] != 200:
-        return {
-            "code": 404,
-            "msg": "Printer not found",
-        }
+        response = APIResponse.not_found("Printer not found")
+        return response.to_dict()
+    
     try:
         conn = cups.Connection()
-
         printer_name = printer_result["data"]["name"]
         printer_attrs = conn.getPrinterAttributes(printer_name)
+        
+        response = APIResponse.success(printer_attrs)
+        return response.to_dict()
     except Exception as e:
-        return {
-            "code": 500,
-            "msg": f"Error getting printer attributes: {str(e)}",
-        }
-    return {
-        "code": 200,
-        "msg": "success",
-        "data": printer_attrs
-    }
+        response = APIResponse.server_error(f"Error getting printer attributes: {str(e)}")
+        return response.to_dict()
 
 
-def print_file(index: int, file_path: str, title: str = "", options: dict = None) -> dict:
+def print_file(index: int, file_path: str, title: str = "", options: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Print file using CUPS
     
@@ -199,21 +169,17 @@ def print_file(index: int, file_path: str, title: str = "", options: dict = None
     
     # Check if file exists
     if not os.path.exists(file_path):
-        return {
-            "code": 404,
-            "msg": f"File not found: {file_path}",
-        }
+        response = APIResponse.not_found(f"File not found: {file_path}")
+        return response.to_dict()
     
     printer = get_index_printer_from_list(index)
     if printer is None:
-        return {
-            "code": 404,
-            "msg": "Printer not found",
-        }
+        response = APIResponse.not_found("Printer not found")
+        return response.to_dict()
     
     try:
         conn = cups.Connection()
-        printer_name = printer["name"]
+        printer_name = printer.name
         
         # Get printer attributes and check status
         printer_attrs = conn.getPrinterAttributes(printer_name)
@@ -222,26 +188,20 @@ def print_file(index: int, file_path: str, title: str = "", options: dict = None
         
         # Check if printer is accepting jobs
         if not is_accepting:
-            return {
-                "code": 500,
-                "msg": "Printer is not accepting jobs",
-                "data": {
-                    "printer_name": printer_name,
-                    "is_accepting": is_accepting
-                }
-            }
+            response = APIResponse.server_error("Printer is not accepting jobs", {
+                "printer_name": printer_name,
+                "is_accepting": is_accepting
+            })
+            return response.to_dict()
         
         # Warn if printer is not idle (but still try to print)
         if state == 5:  # stopped
-            return {
-                "code": 500,
-                "msg": f"Printer is stopped, cannot print",
-                "data": {
-                    "printer_name": printer_name,
-                    "state": state,
-                    "state_reasons": printer_attrs.get('printer-state-reasons', [])
-                }
-            }
+            response = APIResponse.server_error("Printer is stopped, cannot print", {
+                "printer_name": printer_name,
+                "state": state,
+                "state_reasons": printer_attrs.get('printer-state-reasons', [])
+            })
+            return response.to_dict()
         
         # Prepare print options
         print_options = options if options else {}
@@ -253,32 +213,25 @@ def print_file(index: int, file_path: str, title: str = "", options: dict = None
         # Send print job to CUPS
         job_id = conn.printFile(printer_name, file_path, title, print_options)
         
-        return {
-            "code": 200,
-            "msg": "success",
-            "data": {
-                "job_id": job_id,
-                "printer_name": printer_name,
-                "file_path": file_path,
-                "title": title,
-                "status": "submitted"
-            }
-        }
+        response = APIResponse.success({
+            "job_id": job_id,
+            "printer_name": printer_name,
+            "file_path": file_path,
+            "title": title,
+            "status": "submitted"
+        })
+        return response.to_dict()
         
     except cups.IPPError as e:
         # CUPS specific errors
-        return {
-            "code": 500,
-            "msg": f"CUPS IPP error: {str(e)}",
-        }
+        response = APIResponse.server_error(f"CUPS IPP error: {str(e)}")
+        return response.to_dict()
     except Exception as e:
-        return {
-            "code": 500,
-            "msg": f"Error printing file: {str(e)}",
-        }
+        response = APIResponse.server_error(f"Error printing file: {str(e)}")
+        return response.to_dict()
 
 
-def get_print_job_status(job_id: int) -> dict:
+def get_print_job_status(job_id: int) -> Dict[str, Any]:
     """
     Get print job status
     
@@ -295,10 +248,8 @@ def get_print_job_status(job_id: int) -> dict:
         jobs = conn.getJobs(which_jobs='all', my_jobs=True)
         
         if job_id not in jobs:
-            return {
-                "code": 404,
-                "msg": f"Print job {job_id} not found",
-            }
+            response = APIResponse.not_found(f"Print job {job_id} not found")
+            return response.to_dict()
         
         job = jobs[job_id]
         
@@ -316,29 +267,24 @@ def get_print_job_status(job_id: int) -> dict:
             9: 'completed'
         }
         
-        return {
-            "code": 200,
-            "msg": "success",
-            "data": {
-                "job_id": job_id,
-                "printer_name": job.get('job-printer-name', ''),
-                "job_name": job.get('job-name', ''),
-                "job_state": state_map.get(job_state, 'unknown'),
-                "job_state_reasons": job.get('job-state-reasons', []),
-                "time_at_creation": job.get('time-at-creation', 0),
-                "time_at_processing": job.get('time-at-processing', 0),
-                "time_at_completed": job.get('time-at-completed', 0),
-            }
-        }
+        response = APIResponse.success({
+            "job_id": job_id,
+            "printer_name": job.get('job-printer-name', ''),
+            "job_name": job.get('job-name', ''),
+            "job_state": state_map.get(job_state, 'unknown'),
+            "job_state_reasons": job.get('job-state-reasons', []),
+            "time_at_creation": job.get('time-at-creation', 0),
+            "time_at_processing": job.get('time-at-processing', 0),
+            "time_at_completed": job.get('time-at-completed', 0),
+        })
+        return response.to_dict()
         
     except Exception as e:
-        return {
-            "code": 500,
-            "msg": f"Error getting job status: {str(e)}",
-        }
+        response = APIResponse.server_error(f"Error getting job status: {str(e)}")
+        return response.to_dict()
 
 
-def cancel_print_job(job_id: int) -> dict:
+def cancel_print_job(job_id: int) -> Dict[str, Any]:
     """
     Cancel a print job
     
@@ -352,23 +298,16 @@ def cancel_print_job(job_id: int) -> dict:
         conn = cups.Connection()
         conn.cancelJob(job_id)
         
-        return {
-            "code": 200,
-            "msg": "success",
-            "data": {
-                "job_id": job_id,
-                "status": "canceled"
-            }
-        }
+        response = APIResponse.success({
+            "job_id": job_id,
+            "status": "canceled"
+        })
+        return response.to_dict()
         
     except cups.IPPError as e:
-        return {
-            "code": 500,
-            "msg": f"CUPS IPP error: {str(e)}",
-        }
+        response = APIResponse.server_error(f"CUPS IPP error: {str(e)}")
+        return response.to_dict()
     except Exception as e:
-        return {
-            "code": 500,
-            "msg": f"Error canceling job: {str(e)}",
-        }
+        response = APIResponse.server_error(f"Error canceling job: {str(e)}")
+        return response.to_dict()
 
