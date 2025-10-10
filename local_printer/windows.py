@@ -716,13 +716,14 @@ def print_file(index: int, file_path: str, options: dict = None):
         win32con.DM_IN_BUFFER | win32con.DM_OUT_BUFFER,
     )
 
+    job_id = None
     try:
         # Read file content as bytes
         with open(file_path, "rb") as f:
             file_content = f.read()
 
         doc_info = (file_path, None, "RAW")
-        win32print.StartDocPrinter(p, 1, doc_info)
+        job_id = win32print.StartDocPrinter(p, 1, doc_info)
         win32print.StartPagePrinter(p)
         win32print.WritePrinter(p, file_content)
         win32print.EndPagePrinter(p)
@@ -735,6 +736,11 @@ def print_file(index: int, file_path: str, options: dict = None):
 
     # If we get here, printing was successful
     response = APIResponse.success(
-        {"printer_name": printer_name, "file_path": file_path, "status": "submitted"}
+        {
+            "printer_name": printer_name,
+            "file_path": file_path,
+            "status": "submitted",
+            "job_id": job_id,
+        }
     )
     return response.to_dict()

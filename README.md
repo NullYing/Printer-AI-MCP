@@ -86,36 +86,6 @@ All APIs return responses in a unified format:
 }
 ```
 
-## Platform-Specific Features
-
-### Windows (Incomplete)
-
-- Uses PowerShell to get printer information
-- Supports WMI queries for printer status
-- Automatically detects default printer
-
-### macOS/Linux (CUPS)
-
-- Based on CUPS protocol
-- Supports IPP printing
-- Provides detailed printer attribute queries
-- Supports print job management
-
-## Platform-Specific Features
-
-### Windows (Incomplete)
-
-- Uses PowerShell to get printer information
-- Supports WMI queries for printer status
-- Automatically detects default printer
-
-### macOS/Linux (CUPS)
-
-- Based on CUPS protocol
-- Supports IPP printing
-- Provides detailed printer attribute queries
-- Supports print job management
-
 ## Configuration
 
 ### MCP Configuration Example
