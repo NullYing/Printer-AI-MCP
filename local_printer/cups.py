@@ -12,6 +12,7 @@ from models.model import (
     PrintJob,
     LinuxPrintOptions,
 )
+from utils.logger import logger
 
 
 def print_file_prompt():
@@ -412,6 +413,7 @@ def print_file(
         response = APIResponse.server_error(f"CUPS IPP error: {str(e)}")
         return response.to_dict()
     except Exception as e:
+        logger.exception("Error printing file: %s", e)
         response = APIResponse.server_error(f"Error printing file: {str(e)}")
         return response.to_dict()
 
