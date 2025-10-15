@@ -313,7 +313,7 @@ def get_printer_attrs(index: int) -> Dict[str, Any]:
 
 
 def print_file(
-    index: int, file_path: str, title: str = "", options: Dict[str, Any] = None
+    index: int, file_path: str, options: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     """
     Print file using CUPS
@@ -391,11 +391,17 @@ def print_file(
             print_options = {}
 
         # Set default title if not provided
-        if not title:
-            title = os.path.basename(file_path)
+        title = os.path.basename(file_path)
 
         # Send print job to CUPS
+        logger.info("Printing file: %s", file_path)
+        logger.info("Print options: %s", print_options)
+        logger.info("Printer name: %s", printer_name)
+        logger.info("Title: %s", title)
+
         job_id = conn.printFile(printer_name, file_path, title, print_options)
+
+        logger.info("Job ID: %s", job_id)
 
         response = APIResponse.success(
             {
