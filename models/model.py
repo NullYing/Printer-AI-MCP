@@ -2,7 +2,7 @@
 Data models for printer operations
 """
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, fields
 from typing import List, Optional, Dict, Any
 from enum import Enum
 
@@ -153,14 +153,23 @@ class WindowsPrintOptions:
     number_up: Optional[int] = None  # Pages per sheet (1, 2, 4, 6, 8, 9, 16)
     scaling: Optional[int] = None  # Scaling percentage (50-200)
 
+    # Extra options not defined above
+    extra_options: Optional[Dict[str, Any]] = None
+
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary, excluding None values"""
-        return {k: v for k, v in asdict(self).items() if v is not None}
+        """Convert to dictionary, excluding None values and merging extra_options"""
+        result = {k: v for k, v in asdict(self).items() if v is not None and k != "extra_options"}
+        if self.extra_options:
+            result.update(self.extra_options)
+        return result
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "WindowsPrintOptions":
-        """Create from dictionary"""
-        return cls(**data)
+        """Create from dictionary, unknown keys are stored in extra_options"""
+        known_fields = {f.name for f in fields(cls)} - {"extra_options"}
+        known = {k: v for k, v in data.items() if k in known_fields}
+        extra = {k: v for k, v in data.items() if k not in known_fields}
+        return cls(**known, extra_options=extra if extra else None)
 
 
 
@@ -186,13 +195,22 @@ class LinuxPrintOptions:
     media_type: Optional[str] = None  # Media type
     resolution: Optional[str] = None  # Print resolution
 
+    # Extra options not defined above
+    extra_options: Optional[Dict[str, Any]] = None
+
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary, excluding None values"""
-        return {k: v for k, v in asdict(self).items() if v is not None}
+        """Convert to dictionary, excluding None values and merging extra_options"""
+        result = {k: v for k, v in asdict(self).items() if v is not None and k != "extra_options"}
+        if self.extra_options:
+            result.update(self.extra_options)
+        return result
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "LinuxPrintOptions":
-        """Create from dictionary"""
-        return cls(**data)
+        """Create from dictionary, unknown keys are stored in extra_options"""
+        known_fields = {f.name for f in fields(cls)} - {"extra_options"}
+        known = {k: v for k, v in data.items() if k in known_fields}
+        extra = {k: v for k, v in data.items() if k not in known_fields}
+        return cls(**known, extra_options=extra if extra else None)
 
 
