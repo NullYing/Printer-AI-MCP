@@ -148,11 +148,6 @@ class WindowsPrintOptions:
     dmPrintQuality: Optional[int] = None  # Print quality
     dmCollate: Optional[int] = None  # 1=Collate, 0=No collate
 
-    # Additional options for multipage support
-    page_ranges: Optional[str] = None  # "1-5,10-15" for page selection
-    number_up: Optional[int] = None  # Pages per sheet (1, 2, 4, 6, 8, 9, 16)
-    scaling: Optional[int] = None  # Scaling percentage (50-200)
-
     # Extra options not defined above
     extra_options: Optional[Dict[str, Any]] = None
 
