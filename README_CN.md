@@ -64,6 +64,75 @@ print_file(index: int = None, file_path: str = None, options: dict = None) -> di
 ```
 使用指定打印机打印文件。支持自定义打印选项。
 
+**参数说明：**
+- `index`: 打印机索引（从1开始）。如果为 `None`，使用默认打印机
+- `file_path`: 要打印的文件路径
+- `options`: 打印选项字典（可选），不同平台格式不同：
+
+<details>
+<summary>🪟 <b>Windows 选项</b> — <a href="https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-devmodew">DEVMODE 文档</a></summary>
+
+Windows 使用 [Device Mode (DEVMODE)](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-devmodew) 参数，以 `dm` 为前缀：
+
+```json
+{
+    "dmCopies": 2,
+    "dmOrientation": 1,
+    "dmColor": 2,
+    "dmPaperSize": 9,
+    "dmDuplex": 1,
+    "dmDefaultSource": 7,
+    "dmMediaType": 0,
+    "dmPrintQuality": -4,
+    "dmCollate": 1
+}
+```
+
+| 选项 | 类型 | 说明 |
+|------|------|------|
+| `dmCopies` | int | 打印份数 |
+| `dmOrientation` | int | `1` = 纵向，`2` = 横向 |
+| `dmColor` | int | `1` = 黑白，`2` = 彩色 |
+| `dmPaperSize` | int | 纸张大小常量（`1` = Letter，`5` = Legal，`8` = A3，`9` = A4，`11` = A5） |
+| `dmDuplex` | int | `1` = 单面，`2` = 长边翻转，`3` = 短边翻转 |
+| `dmDefaultSource` | int | 纸盒来源 |
+| `dmMediaType` | int | 介质类型 |
+| `dmPrintQuality` | int | 打印质量（`-4` = 默认，正数值 = DPI） |
+| `dmCollate` | int | `1` = 逐份打印，`0` = 不逐份 |
+
+</details>
+
+<details>
+<summary>🐧🍎 <b>Linux / macOS 选项</b> — CUPS/IPP 格式</summary>
+
+Linux 和 macOS 使用 [CUPS](https://www.cups.org/doc/options.html) IPP 标准选项：
+
+```json
+{
+    "copies": "2",
+    "media": "A4",
+    "orientation_requested": "3",
+    "print_color_mode": "color",
+    "sides": "one-sided",
+    "print_quality": "4",
+    "page_ranges": "1-5,10-15",
+    "number_up": "1"
+}
+```
+
+| 选项 | 类型 | 说明 |
+|------|------|------|
+| `copies` | str | 打印份数 |
+| `media` | str | 纸张大小（如 `A4`、`Letter`、`Legal`） |
+| `orientation_requested` | str | `3` = 纵向，`4` = 横向 |
+| `print_color_mode` | str | `monochrome`（黑白）或 `color`（彩色） |
+| `sides` | str | `one-sided`（单面）、`two-sided-long-edge`（长边双面）、`two-sided-short-edge`（短边双面） |
+| `print_quality` | str | `3` = 草稿，`4` = 普通，`5` = 高质量 |
+| `page_ranges` | str | 页面范围（如 `1-5,10-15`） |
+| `number_up` | str | 每页合并页数 |
+
+</details>
+
 ### API响应格式
 
 所有API都返回统一格式的响应：
