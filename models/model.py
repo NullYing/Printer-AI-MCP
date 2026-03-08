@@ -129,25 +129,6 @@ class PrintJob:
         return cls(**data)
 
 
-@dataclass
-class PrintOptions:
-    """Base print options model"""
-
-    copies: Optional[int] = None
-    media: Optional[str] = None
-    orientation: Optional[str] = None
-    color_mode: Optional[str] = None
-    quality: Optional[str] = None
-    duplex: Optional[str] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary, excluding None values"""
-        return {k: v for k, v in asdict(self).items() if v is not None}
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PrintOptions":
-        """Create from dictionary"""
-        return cls(**data)
 
 
 @dataclass
@@ -181,75 +162,7 @@ class WindowsPrintOptions:
         """Create from dictionary"""
         return cls(**data)
 
-    @classmethod
-    def from_generic_options(cls, options: Dict[str, Any]) -> "WindowsPrintOptions":
-        """Convert generic options to Windows dmXXX format"""
-        dm_options = {}
 
-        # Map generic options to dmXXX format
-        if "copies" in options:
-            dm_options["dmCopies"] = int(options["copies"])
-
-        if "orientation" in options:
-            orientation_map = {"portrait": 1, "landscape": 2}
-            dm_options["dmOrientation"] = orientation_map.get(
-                options["orientation"].lower(), 1
-            )
-
-        if "color_mode" in options:
-            color_map = {"monochrome": 1, "color": 2, "black": 1}
-            dm_options["dmColor"] = color_map.get(options["color_mode"].lower(), 1)
-
-        if "duplex" in options:
-            duplex_map = {
-                "simplex": 1,
-                "vertical": 2,
-                "horizontal": 3,
-                "off": 1,
-                "long-edge": 2,
-                "short-edge": 3,
-            }
-            dm_options["dmDuplex"] = duplex_map.get(options["duplex"].lower(), 1)
-
-        if "paper_size" in options:
-            # Common paper sizes (Windows constants)
-            paper_map = {
-                "a4": 9,
-                "letter": 1,
-                "legal": 5,
-                "a3": 8,
-                "a5": 11,
-                "b4": 12,
-                "b5": 13,
-                "executive": 7,
-                "folio": 14,
-            }
-            dm_options["dmPaperSize"] = paper_map.get(
-                options["paper_size"].lower(), 9
-            )  # Default to A4
-
-        if "media_type" in options and isinstance(options["media_type"], int):
-            dm_options["dmMediaType"] = options["media_type"]
-
-        if "paper_source" in options and isinstance(options["paper_source"], int):
-            dm_options["dmDefaultSource"] = options["paper_source"]
-
-        if "print_quality" in options and isinstance(options["print_quality"], int):
-            dm_options["dmPrintQuality"] = options["print_quality"]
-
-        if "collate" in options:
-            dm_options["dmCollate"] = 1 if options["collate"] else 0
-
-        # Custom paper dimensions
-        if "paper_width" in options:
-            dm_options["dmPaperWidth"] = int(options["paper_width"])
-        if "paper_length" in options:
-            dm_options["dmPaperLength"] = int(options["paper_length"])
-
-        # Multipage support options
-        if "page_ranges" in options:
-            dm_options["page_ranges"] = str(options["page_ranges"])
-        return cls(**dm_options)
 
 
 @dataclass
@@ -282,67 +195,4 @@ class LinuxPrintOptions:
         """Create from dictionary"""
         return cls(**data)
 
-    @classmethod
-    def from_generic_options(cls, options: Dict[str, Any]) -> "LinuxPrintOptions":
-        """Convert generic options to CUPS/IPP format"""
-        cups_options = {}
 
-        # Map generic options to CUPS format
-        if "copies" in options:
-            cups_options["copies"] = str(options["copies"])
-
-        if "orientation" in options:
-            orientation_map = {"portrait": "3", "landscape": "4"}
-            cups_options["orientation_requested"] = orientation_map.get(
-                options["orientation"].lower(), "3"
-            )
-
-        if "color_mode" in options:
-            cups_options["print_color_mode"] = options["color_mode"].lower()
-
-        if "duplex" in options:
-            duplex_map = {
-                "simplex": "one-sided",
-                "off": "one-sided",
-                "vertical": "two-sided-long-edge",
-                "long-edge": "two-sided-long-edge",
-                "horizontal": "two-sided-short-edge",
-                "short-edge": "two-sided-short-edge",
-            }
-            cups_options["sides"] = duplex_map.get(
-                options["duplex"].lower(), "one-sided"
-            )
-
-        if "media" in options:
-            cups_options["media"] = options["media"]
-        elif "paper_size" in options:
-            cups_options["media"] = options["paper_size"]
-
-        if "quality" in options:
-            quality_map = {"draft": "3", "normal": "4", "high": "5"}
-            cups_options["print_quality"] = quality_map.get(
-                options["quality"].lower(), "4"
-            )
-
-        if "page_ranges" in options:
-            cups_options["page_ranges"] = str(options["page_ranges"])
-
-        if "pages_per_sheet" in options:
-            cups_options["number_up"] = str(options["pages_per_sheet"])
-
-        if "fit_to_page" in options:
-            cups_options["fit_to_page"] = "true" if options["fit_to_page"] else "false"
-
-        if "scaling" in options:
-            cups_options["scaling"] = str(options["scaling"])
-
-        if "media_source" in options:
-            cups_options["media_source"] = options["media_source"]
-
-        if "media_type" in options:
-            cups_options["media_type"] = options["media_type"]
-
-        if "resolution" in options:
-            cups_options["resolution"] = str(options["resolution"])
-
-        return cls(**cups_options)

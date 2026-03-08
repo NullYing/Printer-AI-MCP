@@ -19,6 +19,7 @@ from models.model import (
     PrintJob,
     WindowsPrintOptions,
 )
+from typing import Optional
 
 
 def print_file_prompt():
@@ -69,119 +70,102 @@ def get_print_options_format():
     response = {
         "platform": "Windows",
         "format": "dmXXX (Device Mode parameters)",
-        "description": "Windows uses Device Mode parameters with dm prefix for print options",
+        "description": "Windows uses Device Mode (DEVMODE) parameters with dm prefix for print options",
+        "documentation": "https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-devmodew",
+        "options": {
+            "dmCopies": {
+                "type": "int",
+                "description": "Number of copies to print",
+            },
+            "dmOrientation": {
+                "type": "int",
+                "description": "Paper orientation",
+                "values": {"1": "Portrait (DMORIENT_PORTRAIT)", "2": "Landscape (DMORIENT_LANDSCAPE)"},
+            },
+            "dmColor": {
+                "type": "int",
+                "description": "Color mode",
+                "values": {"1": "Monochrome (DMCOLOR_MONOCHROME)", "2": "Color (DMCOLOR_COLOR)"},
+            },
+            "dmPaperSize": {
+                "type": "int",
+                "description": "Paper size constant, see: https://learn.microsoft.com/en-us/windows/win32/intl/paper-sizes",
+                "common_values": {
+                    "1": "Letter (DMPAPER_LETTER)",
+                    "5": "Legal (DMPAPER_LEGAL)",
+                    "8": "A3 (DMPAPER_A3)",
+                    "9": "A4 (DMPAPER_A4)",
+                    "11": "A5 (DMPAPER_A5)",
+                    "12": "B4 (DMPAPER_B4)",
+                    "13": "B5 (DMPAPER_B5)",
+                    "7": "Executive (DMPAPER_EXECUTIVE)",
+                    "14": "Folio (DMPAPER_FOLIO)",
+                },
+            },
+            "dmDuplex": {
+                "type": "int",
+                "description": "Duplex (double-sided) printing mode",
+                "values": {
+                    "1": "Simplex (DMDUP_SIMPLEX)",
+                    "2": "Long edge (DMDUP_VERTICAL)",
+                    "3": "Short edge (DMDUP_HORIZONTAL)",
+                },
+            },
+            "dmDefaultSource": {
+                "type": "int",
+                "description": "Paper source/bin, device-specific values",
+            },
+            "dmMediaType": {
+                "type": "int",
+                "description": "Media type, device-specific values",
+            },
+            "dmPrintQuality": {
+                "type": "int",
+                "description": "Print quality. Negative values are predefined, positive values are DPI",
+                "predefined_values": {
+                    "-1": "Draft (DMRES_DRAFT)",
+                    "-2": "Low (DMRES_LOW)",
+                    "-3": "Medium (DMRES_MEDIUM)",
+                    "-4": "High (DMRES_HIGH)",
+                },
+            },
+            "dmCollate": {
+                "type": "int",
+                "description": "Collation mode",
+                "values": {"0": "No collate", "1": "Collate (DMCOLLATE_TRUE)"},
+            },
+            "dmPaperLength": {
+                "type": "int",
+                "description": "Custom paper length in tenths of a millimeter, overrides dmPaperSize",
+            },
+            "dmPaperWidth": {
+                "type": "int",
+                "description": "Custom paper width in tenths of a millimeter, overrides dmPaperSize",
+            },
+        },
         "examples": {
             "basic_print": {
                 "dmCopies": 1,
-                "dmOrientation": 1,  # 1=Portrait, 2=Landscape
-                "dmColor": 1,  # 1=Monochrome, 2=Color
-                "dmPaperSize": 9,  # 9=A4, 1=Letter, 5=Legal
+                "dmOrientation": 1,
+                "dmColor": 1,
+                "dmPaperSize": 9,
             },
             "advanced_print": {
                 "dmCopies": 2,
-                "dmOrientation": 2,  # Landscape
-                "dmColor": 2,  # Color
-                "dmPaperSize": 9,  # A4
-                "dmDuplex": 2,  # 1=Simplex, 2=Vertical, 3=Horizontal
-                "dmDefaultSource": 7,  # Paper source/bin
-                "dmPrintQuality": -4,  # Print quality
-                "dmCollate": 1,  # 1=Collate, 0=No collate
+                "dmOrientation": 2,
+                "dmColor": 2,
+                "dmPaperSize": 9,
+                "dmDuplex": 2,
+                "dmDefaultSource": 7,
+                "dmPrintQuality": -4,
+                "dmCollate": 1,
             },
         },
-        "paper_sizes": {
-            "Letter": 1,
-            "Legal": 5,
-            "A3": 8,
-            "A4": 9,
-            "A5": 11,
-            "B4": 12,
-            "B5": 13,
-            "Executive": 7,
-            "Folio": 14,
-        },
-        "orientations": {"Portrait": 1, "Landscape": 2},
-        "color_modes": {"Monochrome": 1, "Color": 2},
-        "duplex_modes": {"Simplex": 1, "Vertical": 2, "Horizontal": 3},
     }
     return response
 
 
-def convert_print_options(options: dict, target_format: str = "auto"):
-    """Convert print options between different formats for Windows
 
-    Args:
-        options: Print options dictionary
-        target_format: Target format ('windows', 'generic', 'auto')
-
-    Returns:
-        dict: Converted print options
-    """
-    if not options:
-        response = APIResponse.success(
-            {"converted_options": {}, "format": target_format}
-        )
-        return response.to_dict()
-
-    try:
-        # Determine target format
-        if target_format == "auto":
-            target_format = "windows"
-
-        # Convert options
-        if target_format == "windows":
-            converted = WindowsPrintOptions.from_generic_options(options)
-            converted_dict = converted.to_dict()
-        elif target_format == "generic":
-            # Convert from Windows dmXXX format to generic format
-            converted_dict = {}
-
-            # From Windows dmXXX format
-            if "dmCopies" in options:
-                converted_dict["copies"] = options["dmCopies"]
-            if "dmOrientation" in options:
-                converted_dict["orientation"] = (
-                    "portrait" if options["dmOrientation"] == 1 else "landscape"
-                )
-            if "dmColor" in options:
-                converted_dict["color_mode"] = (
-                    "monochrome" if options["dmColor"] == 1 else "color"
-                )
-            if "dmDuplex" in options:
-                duplex_map = {1: "off", 2: "long-edge", 3: "short-edge"}
-                converted_dict["duplex"] = duplex_map.get(options["dmDuplex"], "off")
-            if "dmPaperSize" in options:
-                # Convert paper size constants to names
-                paper_map = {
-                    1: "letter",
-                    5: "legal",
-                    8: "a3",
-                    9: "a4",
-                    11: "a5",
-                    12: "b4",
-                    13: "b5",
-                    7: "executive",
-                    14: "folio",
-                }
-                converted_dict["paper_size"] = paper_map.get(
-                    options["dmPaperSize"], "a4"
-                )
-        else:
-            response = APIResponse.error(400, f"Invalid target format: {target_format}")
-            return response.to_dict()
-
-        response = APIResponse.success(
-            {
-                "original_options": options,
-                "converted_options": converted_dict,
-                "source_format": "auto-detected",
-                "target_format": target_format,
-            }
-        )
-        return response.to_dict()
-
-    except Exception as e:
-        response = APIResponse.server_error(f"Error converting options: {str(e)}")
-        return response.to_dict()
 
 
 def get_printer_list() -> Dict[str, Any]:
@@ -612,76 +596,70 @@ def cancel_print_job(job_id: int) -> Dict[str, Any]:
         return response.to_dict()
 
 
-def set_dev_mode(devmode, params):
-    """Set device mode parameters from options dict
+def set_dev_mode(devmode, options: WindowsPrintOptions):
+    """Set device mode parameters from WindowsPrintOptions
 
     Args:
         devmode: Windows device mode object
-        params: Dictionary with dmXXX parameters or generic options
+        options: WindowsPrintOptions instance
     """
-    if not params:
+    if not options:
         return
-
-    # Convert to WindowsPrintOptions if needed
-    if not any(key.startswith("dm") for key in params.keys()):
-        # Generic options, convert to dmXXX format
-        windows_options = WindowsPrintOptions.from_generic_options(params)
-        params = windows_options.to_dict()
 
     # Set device mode fields
     fields_to_set = 0
 
-    if params.get("dmOrientation") is not None:
+    if options.dmOrientation is not None:
         fields_to_set |= win32con.DM_ORIENTATION
-        devmode.Orientation = int(params.get("dmOrientation"))
+        devmode.Orientation = int(options.dmOrientation)
 
-    if params.get("dmCopies") is not None:
+    if options.dmCopies is not None:
         fields_to_set |= win32con.DM_COPIES
-        devmode.Copies = int(params.get("dmCopies"))
+        devmode.Copies = int(options.dmCopies)
 
-    if params.get("dmColor") is not None:
+    if options.dmColor is not None:
         fields_to_set |= win32con.DM_COLOR
-        devmode.Color = int(params.get("dmColor"))
+        devmode.Color = int(options.dmColor)
 
-    if params.get("dmPaperSize") is not None:
+    if options.dmPaperSize is not None:
         fields_to_set |= win32con.DM_PAPERSIZE
-        devmode.PaperSize = int(params.get("dmPaperSize"))
+        devmode.PaperSize = int(options.dmPaperSize)
 
-    if params.get("dmDuplex") is not None:
+    if options.dmDuplex is not None:
         fields_to_set |= win32con.DM_DUPLEX
-        devmode.Duplex = int(params.get("dmDuplex"))
+        devmode.Duplex = int(options.dmDuplex)
 
-    if params.get("dmDefaultSource") is not None:
+    if options.dmDefaultSource is not None:
         fields_to_set |= win32con.DM_DEFAULTSOURCE
-        devmode.DefaultSource = int(params.get("dmDefaultSource"))
+        devmode.DefaultSource = int(options.dmDefaultSource)
 
-    if params.get("dmMediaType") is not None:
+    if options.dmMediaType is not None:
         fields_to_set |= win32con.DM_MEDIATYPE
-        devmode.MediaType = int(params.get("dmMediaType"))
+        devmode.MediaType = int(options.dmMediaType)
 
-    if params.get("dmPrintQuality") is not None:
+    if options.dmPrintQuality is not None:
         fields_to_set |= win32con.DM_PRINTQUALITY
-        devmode.PrintQuality = int(params.get("dmPrintQuality"))
+        devmode.PrintQuality = int(options.dmPrintQuality)
 
-    if params.get("dmCollate") is not None:
+    if options.dmCollate is not None:
         fields_to_set |= win32con.DM_COLLATE
-        devmode.Collate = int(params.get("dmCollate"))
+        devmode.Collate = int(options.dmCollate)
 
     # Handle custom paper size
-    if params.get("dmPaperSize") == 0 or params.get("dmPaperSize") is None:
-        if params.get("dmPaperLength") is not None:
+    if options.dmPaperSize == 0 or options.dmPaperSize is None:
+        if options.dmPaperLength is not None:
             fields_to_set |= win32con.DM_PAPERLENGTH
-            devmode.PaperLength = int(params.get("dmPaperLength"))
+            devmode.PaperLength = int(options.dmPaperLength)
 
-        if params.get("dmPaperWidth") is not None:
+        if options.dmPaperWidth is not None:
             fields_to_set |= win32con.DM_PAPERWIDTH
-            devmode.PaperWidth = int(params.get("dmPaperWidth"))
+            devmode.PaperWidth = int(options.dmPaperWidth)
 
     # Apply all fields at once
     devmode.Fields = devmode.Fields | fields_to_set
 
 
-def print_file(index: int, file_path: str, options: dict = None):
+def print_file(index: int, file_path: str, options: Optional[WindowsPrintOptions] = None):
     printer = get_index_printer_from_list(index)
     if printer is None:
         response = APIResponse.not_found("Printer not found")

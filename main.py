@@ -15,8 +15,8 @@ if platform == "win32":
         cancel_print_job as _cancel_print_job,
         print_file_prompt as _print_file_prompt,
         get_print_options_format as _get_print_options_format,
-        # convert_print_options as _convert_print_options,
     )
+    from models.model import WindowsPrintOptions as PrintOptionsClass
 elif platform == "linux" or platform == "darwin":
     from local_printer.cups import (
         get_printer_list as _get_printer_list,
@@ -28,8 +28,8 @@ elif platform == "linux" or platform == "darwin":
         cancel_print_job as _cancel_print_job,
         print_file_prompt as _print_file_prompt,
         get_print_options_format as _get_print_options_format,
-        # convert_print_options as _convert_print_options,
     )
+    from models.model import LinuxPrintOptions as PrintOptionsClass
 else:
     _get_printer_list = None
     _get_printer_status = None
@@ -40,7 +40,7 @@ else:
     _cancel_print_job = None
     _print_file_prompt = None
     _get_print_options_format = None
-    # _convert_print_options = None
+    PrintOptionsClass = None
 
 
 # Create MCP server
@@ -152,7 +152,13 @@ def print_file(
     if _print_file is None:
         response = APIResponse.server_error(f"Unsupported operating system: {platform}")
         return response.to_dict()
-    return _print_file(index, file_path, options)
+
+    # Convert dict to platform-specific Options class
+    print_options = None
+    if options and PrintOptionsClass:
+        print_options = PrintOptionsClass.from_dict(options)
+
+    return _print_file(index, file_path, print_options)
 
 
 @mcp.tool()

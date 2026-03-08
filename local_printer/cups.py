@@ -7,7 +7,6 @@ from typing import List, Dict, Any, Optional
 from models.model import (
     Printer,
     APIResponse,
-    PrintOptions,
     PrinterStatus,
     PrintJob,
     LinuxPrintOptions,
@@ -65,108 +64,90 @@ def get_print_options_format():
         "platform": "Linux/macOS",
         "format": "CUPS/IPP (Internet Printing Protocol)",
         "description": "Linux/macOS uses CUPS with IPP standard options",
+        "documentation": {
+            "cups_options": "https://www.cups.org/doc/options.html",
+            "ipp_attributes": "https://www.iana.org/assignments/ipp-registrations/ipp-registrations.xhtml",
+        },
+        "options": {
+            "copies": {
+                "type": "str",
+                "description": "Number of copies to print",
+            },
+            "media": {
+                "type": "str",
+                "description": "Paper size name, see: https://www.cups.org/doc/spec-ppd.html",
+                "common_values": ["A3", "A4", "A5", "Letter", "Legal", "Executive"],
+            },
+            "orientation_requested": {
+                "type": "str",
+                "description": "Paper orientation (IPP enum)",
+                "values": {"3": "Portrait", "4": "Landscape", "5": "Reverse Landscape", "6": "Reverse Portrait"},
+            },
+            "print_color_mode": {
+                "type": "str",
+                "description": "Color printing mode",
+                "values": ["monochrome", "color"],
+            },
+            "sides": {
+                "type": "str",
+                "description": "Duplex (double-sided) printing mode",
+                "values": ["one-sided", "two-sided-long-edge", "two-sided-short-edge"],
+            },
+            "print_quality": {
+                "type": "str",
+                "description": "Print quality (IPP enum)",
+                "values": {"3": "Draft", "4": "Normal", "5": "High"},
+            },
+            "page_ranges": {
+                "type": "str",
+                "description": "Page ranges to print, e.g. '1-5,10-15'",
+            },
+            "number_up": {
+                "type": "str",
+                "description": "Number of pages per sheet",
+                "values": ["1", "2", "4", "6", "9", "16"],
+            },
+            "fit_to_page": {
+                "type": "str",
+                "description": "Scale pages to fit the selected media size",
+                "values": ["true", "false"],
+            },
+            "media_source": {
+                "type": "str",
+                "description": "Paper source/tray, device-specific values",
+            },
+            "media_type": {
+                "type": "str",
+                "description": "Media type, device-specific values",
+            },
+            "resolution": {
+                "type": "str",
+                "description": "Print resolution, e.g. '600dpi' or '600x600dpi'",
+            },
+        },
         "examples": {
             "basic_print": {
                 "copies": "1",
                 "media": "A4",
-                "orientation_requested": "3",  # 3=Portrait, 4=Landscape
+                "orientation_requested": "3",
                 "print_color_mode": "monochrome",
             },
             "advanced_print": {
                 "copies": "2",
                 "media": "A4",
-                "orientation_requested": "4",  # Landscape
+                "orientation_requested": "4",
                 "print_color_mode": "color",
-                "sides": "two-sided-long-edge",  # Duplex
-                "print_quality": "4",  # 3=Draft, 4=Normal, 5=High
-                "page_ranges": "1-5,10-15",  # Specific pages
-                "number_up": "2",  # Pages per sheet
+                "sides": "two-sided-long-edge",
+                "print_quality": "4",
+                "page_ranges": "1-5,10-15",
+                "number_up": "2",
             },
         },
-        "media_sizes": ["A3", "A4", "A5", "Letter", "Legal", "Executive"],
-        "orientations": {"Portrait": "3", "Landscape": "4"},
-        "color_modes": ["monochrome", "color"],
-        "duplex_modes": [
-            "one-sided",
-            "two-sided-long-edge",
-            "two-sided-short-edge",
-        ],
-        "quality_levels": {"Draft": "3", "Normal": "4", "High": "5"},
     }
     return response
 
 
-def convert_print_options(options: dict, target_format: str = "auto"):
-    """Convert print options between different formats for Linux/CUPS
 
-    Args:
-        options: Print options dictionary
-        target_format: Target format ('linux', 'generic', 'auto')
-
-    Returns:
-        dict: Converted print options
-    """
-    if not options:
-        response = APIResponse.success(
-            {"converted_options": {}, "format": target_format}
-        )
-        return response.to_dict()
-
-    try:
-        # Determine target format
-        if target_format == "auto":
-            target_format = "linux"
-
-        # Convert options
-        if target_format == "linux":
-            converted = LinuxPrintOptions.from_generic_options(options)
-            converted_dict = converted.to_dict()
-        elif target_format == "generic":
-            # Convert from CUPS format to generic format
-            converted_dict = {}
-
-            # From CUPS format
-            if "copies" in options and isinstance(options["copies"], str):
-                converted_dict["copies"] = int(options["copies"])
-            if "orientation_requested" in options:
-                converted_dict["orientation"] = (
-                    "portrait"
-                    if options["orientation_requested"] == "3"
-                    else "landscape"
-                )
-            if "print_color_mode" in options:
-                converted_dict["color_mode"] = options["print_color_mode"]
-            if "sides" in options:
-                sides_map = {
-                    "one-sided": "off",
-                    "two-sided-long-edge": "long-edge",
-                    "two-sided-short-edge": "short-edge",
-                }
-                converted_dict["duplex"] = sides_map.get(options["sides"], "off")
-            if "media" in options:
-                converted_dict["paper_size"] = options["media"]
-            if "print_quality" in options:
-                quality_map = {"3": "draft", "4": "normal", "5": "high"}
-                converted_dict["quality"] = quality_map.get(
-                    options["print_quality"], "normal"
-                )
-        else:
-            response = APIResponse.error(400, f"Invalid target format: {target_format}")
-            return response.to_dict()
-
-        response = APIResponse.success(
-            {
-                "original_options": options,
-                "converted_options": converted_dict,
-                "source_format": "auto-detected",
-                "target_format": target_format,
-            }
-        )
-        return response.to_dict()
-
-    except Exception as e:
-        response = APIResponse.server_error(f"Error converting options: {str(e)}")
-        return response.to_dict()
 
 
 def get_printer_list() -> Dict[str, Any]:
@@ -313,16 +294,15 @@ def get_printer_attrs(index: int) -> Dict[str, Any]:
 
 
 def print_file(
-    index: int, file_path: str, options: Dict[str, Any] = None
-) -> Dict[str, Any]:
+    index: int, file_path: str, options: Optional[LinuxPrintOptions] = None
+) -> dict:
     """
     Print file using CUPS
 
     Args:
         index: Printer index
         file_path: Path to the file to print
-        title: Print job title (optional)
-        options: Print options dict (optional), e.g., {'copies': '2', 'media': 'A4'}
+        options: LinuxPrintOptions instance (optional)
 
     Returns:
         dict: Response with job_id if successful
@@ -368,27 +348,8 @@ def print_file(
             )
             return response.to_dict()
 
-        # Prepare print options - convert to CUPS format if needed
-        if options:
-            # Check if options are already in CUPS format or need conversion
-            if not any(
-                key
-                in [
-                    "copies",
-                    "media",
-                    "orientation_requested",
-                    "print_color_mode",
-                    "sides",
-                ]
-                for key in options.keys()
-            ):
-                # Generic options, convert to CUPS format
-                linux_options = LinuxPrintOptions.from_generic_options(options)
-                print_options = linux_options.to_dict()
-            else:
-                print_options = options
-        else:
-            print_options = {}
+        # Convert options to dict for CUPS API
+        print_options = options.to_dict() if options else {}
 
         # Set default title if not provided
         title = os.path.basename(file_path)
