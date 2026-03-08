@@ -1,0 +1,9 @@
+services:
+  printer-ai-mcp:
+    build: .
+    container_name: printer-ai-mcp
+    ports:
+      - "8000:8000"
+    volumes:
+      - /var/run/cups:/var/run/cups
+    restart: unless-stopped

@@ -32,6 +32,12 @@ cd printer-ai-mcp
 uv sync
 ```
 
+### Using Docker
+
+```bash
+docker compose up -d
+```
+
 ## Usage
 
 ### Start MCP Server
@@ -187,6 +193,8 @@ printer-ai-mcp/
 │   └── windows.py         # Windows printer support
 ├── network_printer/       # Network printer module (to be developed)
 │   └── __init__.py
+├── Dockerfile             # Docker image build file
+├── docker-compose.yml     # Docker Compose deployment config
 ├── pyproject.toml         # Project configuration
 └── README.md              # Project documentation
 ```

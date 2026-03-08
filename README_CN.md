@@ -30,6 +30,12 @@ cd printer-ai-mcp
 uv sync
 ```
 
+### 使用Docker部署
+
+```bash
+docker compose up -d
+```
+
 ## 使用方法
 
 ### 启动MCP服务器
@@ -177,6 +183,8 @@ printer-ai-mcp/
 │   └── windows.py         # Windows打印机支持
 ├── network_printer/       # 网络打印机模块（待开发）
 │   └── __init__.py
+├── Dockerfile             # Docker镜像构建文件
+├── docker-compose.yml     # Docker Compose部署配置
 ├── pyproject.toml         # 项目配置
 └── README.md              # 项目说明
 ```
