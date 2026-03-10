@@ -456,14 +456,12 @@ def get_print_job_status(job_id: int) -> Dict[str, Any]:
     try:
         conn = cups.Connection()
 
-        # Get all jobs
-        jobs = conn.getJobs(which_jobs="all", my_jobs=True)
-
-        if job_id not in jobs:
+        # 使用 getJobAttributes 获取完整的任务信息
+        try:
+            job = conn.getJobAttributes(job_id)
+        except cups.IPPError:
             response = APIResponse.not_found(f"Print job {job_id} not found")
             return response.to_dict()
-
-        job = jobs[job_id]
 
         # Job state values:
         # 3 = pending, 4 = pending-held, 5 = processing,
@@ -479,11 +477,17 @@ def get_print_job_status(job_id: int) -> Dict[str, Any]:
             9: "completed",
         }
 
+        # 从 job-printer-uri 解析打印机名称
+        printer_name = ""
+        printer_uri = job.get("job-printer-uri", "") or job.get("printer-uri", "")
+        if printer_uri and "/printers/" in printer_uri:
+            printer_name = printer_uri.split("/printers/")[-1]
+
         response = APIResponse.success(
             {
                 "job_id": job_id,
-                "printer_name": job.get("job-printer-name", ""),
-                "job_name": job.get("job-name", ""),
+                "printer_name": printer_name,
+                "job_name": job.get("document-name-supplied", job.get("job-name", "")),
                 "job_state": state_map.get(job_state, "unknown"),
                 "job_state_reasons": job.get("job-state-reasons", []),
                 "time_at_creation": job.get("time-at-creation", 0),
