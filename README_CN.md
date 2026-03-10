@@ -206,8 +206,15 @@ printer-ai-mcp/
 
 MIT License
 
+## 另请参阅
+
+### [Printer AI Skills](https://github.com/NullYing/printer-ai-skills)
+
+如果你更喜欢 **CLI + AI Skill** 的方式，而不是运行 MCP 服务器，可以看看 [printer-ai-skills](https://github.com/NullYing/printer-ai-skills)。它提供了一个独立的 `printer-ai` CLI 工具，AI 助手（OpenClaw / Cursor / Claude）可以通过 `SKILL.md` 直接驱动——无需启动服务进程。同样的跨平台打印能力，更轻量的部署方式。
+
 ## 相关链接
 
 - [项目主页](https://github.com/NullYing/printer-ai-mcp)
-- [MCP协议文档](https://modelcontextprotocol.io/)
-- [CUPS文档](https://www.cups.org/)
+- [Printer AI Skills（CLI 版本）](https://github.com/NullYing/printer-ai-skills)
+- [MCP 协议文档](https://modelcontextprotocol.io/)
+- [CUPS 文档](https://www.cups.org/)

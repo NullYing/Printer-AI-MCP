@@ -216,8 +216,15 @@ Your contributions help make this project better for everyone. Thank you for you
 
 MIT License
 
+## See Also
+
+### [Printer AI Skills](https://github.com/NullYing/printer-ai-skills)
+
+If you prefer a **CLI + AI Skill** approach instead of running an MCP server, check out [printer-ai-skills](https://github.com/NullYing/printer-ai-skills). It provides a standalone `printer-ai` CLI tool that AI assistants (OpenClaw / Cursor / Claude) can drive directly through `SKILL.md` — no server process needed. Same cross-platform printing capabilities, lighter deployment.
+
 ## Related Links
 
 - [Project Homepage](https://github.com/NullYing/printer-ai-mcp)
+- [Printer AI Skills (CLI version)](https://github.com/NullYing/printer-ai-skills)
 - [MCP Protocol Documentation](https://modelcontextprotocol.io/)
 - [CUPS Documentation](https://www.cups.org/)
